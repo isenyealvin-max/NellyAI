@@ -97,3 +97,37 @@ input:focus,select:focus{outline:2px solid var(--fg);outline-offset:1px}
 .tx table{border-collapse:collapse;width:100%;font-size:15px}
 .tx th{background:var(--ub);text-align:left;font-weight:600}
 .tx th,.tx td{padding:9px 12px;border-bottom:1px solid var(--ln);vertical-align:top}.tx tr:last-child td{border-bottom:0}
+
+/* V2: bolder, clearer */
+:root{--mut:#525252;--ln:#d4d4d4;--ub:#f1f1f1}
+html[data-theme=dark]{--mut:#b8b8b8;--ln:#4a4a4a;--ub:#303030}
+html,body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{font-size:17px}
+input,select,textarea{border-width:1.5px}
+.btn.ghost,.btn.danger{border-width:1.5px}
+.icb{width:46px;height:46px;border-radius:50%;background:var(--bg);box-shadow:0 0 0 1.5px var(--ln),0 3px 10px #0000001a;display:grid;place-items:center;color:var(--fg)}
+.icb svg{width:24px;height:24px}
+.top{padding:calc(10px + env(safe-area-inset-top)) 14px 8px}
+.tt{font-size:20px;font-weight:700}
+.tx,.u{font-size:17px;line-height:1.6}
+.empty img{width:104px;height:104px}
+.empty h2{font-size:27px;font-weight:700;line-height:1.25}
+.sg button{border:1.5px solid var(--ln);font-size:16px;font-weight:500;color:var(--fg);padding:16px}
+.cmp{padding:6px 12px calc(10px + env(safe-area-inset-bottom))}
+.pill{background:var(--bg);border:1.5px solid var(--ln);box-shadow:0 4px 18px #00000018;padding:6px}
+.pill textarea{font-size:17px;padding:11px 4px;color:var(--fg)}
+.pill textarea::placeholder{color:var(--mut)}
+.pl,.send{width:42px;height:42px;border-radius:50%;border:0;display:grid;place-items:center;flex:none}
+.pl{background:var(--ub);color:var(--fg)}
+.pl svg,.send svg{width:22px;height:22px}
+.send:disabled{background:#c8c8c8;color:#fff;opacity:1}
+html[data-theme=dark] .send:disabled{background:#4a4a4a}
+.note{font-size:13px;color:var(--mut)}
+.act button,.cpt,.ch button{border:1.5px solid var(--ln);color:var(--fg);font-weight:500;padding:5px 12px;font-size:14px}
+.newc{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;color:var(--fg)}
+.newc svg{width:22px;height:22px}
+.ci span{font-size:16px;color:var(--fg)}
+.mo{display:grid;place-items:center}.mo svg{width:22px;height:22px}
+.mi{font-size:18px;font-weight:500}
+.err{font-size:16px;word-break:break-word}
+.chk{margin-top:8px;border:1.5px solid var(--fg);background:none;border-radius:999px;padding:8px 16px;font-weight:600}

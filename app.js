@@ -144,9 +144,9 @@ function md(src) {
 }
 
 /* ---------- Nelly AI ---------- */
-const VERSION = "V1";
-const CHANGES = [["V1", "First release: ChatGPT-style chat, saved chats, accounts with email code, hourly message limits, light and dark themes, settings, Help assistant, Terms and Privacy."]];
-let U, jw, jwAt = 0, chats = [], cur = null, msgs = [], me = { left: 40, resetAt: 0, limit: 40 }, busy = false, dip = null, errText = "";
+const VERSION = "V2";
+const CHANGES = [["V2", "Bolder, clearer design with proper icons and a ChatGPT-style message bar; clearer problem messages and a setup check."], ["V1", "First release: ChatGPT-style chat, saved chats, accounts with email code, hourly message limits, light and dark themes, settings, Help assistant, Terms and Privacy."]];
+let U, jw, jwAt = 0, chats = [], cur = null, msgs = [], me = { left: 40, resetAt: 0, limit: 40 }, busy = false, dip = null, errText = "", setupFail = false;
 const mql = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
 function applyTheme() { const t = LS("theme") || "system"; document.documentElement.dataset.theme = t === "system" ? (mql && mql.matches ? "dark" : "light") : t; }
 applyTheme(); if (mql && mql.addEventListener) mql.addEventListener("change", applyTheme);
@@ -155,6 +155,15 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catc
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
 const clock = t => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 const blocked = () => me.left <= 0 && me.resetAt > Date.now();
+const SV = (p, extra = "") => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
+const IC = {
+  menu: SV('<path d="M4 8h16M4 16h10"/>'),
+  edit: SV('<path d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/><path d="M18.4 2.8a2.2 2.2 0 013.1 3.1L12 15.4 8 16l.6-4z"/>'),
+  send: SV('<path d="M12 19V5M5 12l7-7 7 7"/>', 'stroke-width="2.8"'),
+  plus: SV('<path d="M12 5v14M5 12h14"/>', 'stroke-width="2.6"'),
+  close: SV('<path d="M6 6l12 12M18 6L6 18"/>'),
+  more: SV('<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>', 'stroke-width="1"')
+};
 
 async function api(path, body = {}) {
   if (!jw || Date.now() - jwAt > 600000) { jw = (await account.createJWT()).jwt; jwAt = Date.now(); }
@@ -162,12 +171,12 @@ async function api(path, body = {}) {
   try { r = await fetch("/api/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jwt: jw, ...body }) }); }
   catch (e) { throw new Error("No internet connection. Please check it and try again."); }
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(j.error === "limit" ? "limit" : (j.error || "Something went wrong. Please try again.") + (LS("debug") && j.detail ? " " + j.detail : "")), { limit: j.error === "limit" ? j : null });
+  if (!r.ok) throw Object.assign(new Error(j.error === "limit" ? "limit" : (j.error || "Something went wrong. Please try again.") + (j.detail ? " (" + j.detail + ")" : "")), { limit: j.error === "limit" ? j : null });
   return j;
 }
 function sheet(title, html) {
   const d = document.createElement("div"); d.className = "sheet";
-  d.innerHTML = `<div class="sh"><div class="shh"><b>${title}</b><button class="icb" aria-label="Close">✕</button></div><div class="shb">${html}</div></div>`;
+  d.innerHTML = `<div class="sh"><div class="shh"><b>${title}</b><button class="icb" aria-label="Close">${IC.close}</button></div><div class="shb">${html}</div></div>`;
   d.querySelector(".icb").onclick = () => d.remove();
   document.body.appendChild(d); return d;
 }
@@ -202,14 +211,15 @@ function welcome() {
 function after(u) { U = u; home(); }
 async function home() {
   chatScreen();
-  try { const [c, m] = await Promise.all([api("chats"), api("me")]); chats = c.chats; me = { ...me, ...m }; errText = ""; }
-  catch (e) { errText = e.message; }
+  try { const [c, m] = await Promise.all([api("chats"), api("me")]); chats = c.chats; me = { ...me, ...m }; errText = ""; setupFail = false; }
+  catch (e) { errText = e.message; setupFail = true; }
   drawFeed(); note();
 }
 function chatScreen() {
-  view(`<div class="app"><header class="top"><button class="icb" id="mn" aria-label="Menu">☰</button><b class="tt">Nelly AI</b><button class="icb" id="nc" aria-label="New chat">✎</button></header><main class="feed" id="feed"></main>
-    <footer class="cmp"><div class="pill"><textarea id="in" rows="1" maxlength="4000" placeholder="Message Nelly AI"></textarea><button class="send" id="sd" aria-label="Send" disabled>↑</button></div><p class="note" id="nt"></p></footer></div>`);
+  view(`<div class="app"><header class="top"><button class="icb" id="mn" aria-label="Menu">${IC.menu}</button><b class="tt">Nelly AI</b><button class="icb" id="nc" aria-label="New chat">${IC.edit}</button></header><main class="feed" id="feed"></main>
+    <footer class="cmp"><div class="pill"><button class="pl" id="pl" aria-label="Add pictures or files">${IC.plus}</button><textarea id="in" rows="1" maxlength="4000" placeholder="Message Nelly AI"></textarea><button class="send" id="sd" aria-label="Send" disabled>${IC.send}</button></div><p class="note" id="nt"></p></footer></div>`);
   $("#mn").onclick = drawer; $("#nc").onclick = newChat;
+  $("#pl").onclick = () => sheet("Coming soon", "<p>Adding pictures and files is coming in the next update.</p>");
   const inp = $("#in");
   inp.oninput = () => { grow(); setSend(); };
   inp.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 700) { e.preventDefault(); send(inp.value); } };
@@ -251,7 +261,7 @@ function drawFeed(loading) {
   }
   if (busy) f.insertAdjacentHTML("beforeend", `<div class="a"><div class="dots2"><i></i><i></i><i></i></div></div>`);
   if (blocked()) f.insertAdjacentHTML("beforeend", `<div class="lim"><b>Message limit reached</b><p>Dear user, you have reached your limit of ${me.limit} messages per hour. You can send messages again at <b>${clock(me.resetAt)}</b>.</p><p class="cd" id="cd">Resets in ${fmt(me.resetAt - Date.now())}</p></div>`);
-  if (errText) f.insertAdjacentHTML("beforeend", `<div class="err">${esc(errText)}</div>`);
+  if (errText) { f.insertAdjacentHTML("beforeend", `<div class="err">${esc(errText)}${setupFail ? `<br><button class="chk" id="chk">Check setup</button>` : ""}</div>`); const ck = $("#chk"); if (ck) ck.onclick = checkSetup; }
   f.scrollTop = f.scrollHeight;
 }
 function newChat() { cur = null; msgs = []; errText = ""; drawFeed(); const i = $("#in"); if (i) i.focus(); }
@@ -275,10 +285,18 @@ async function send(text) {
   busy = false; drawFeed(); note();
 }
 
+async function checkSetup() {
+  const d = sheet("Setup check", `<p class="sub">Checking…</p>`), b = d.querySelector(".shb");
+  try {
+    const j = await api("health");
+    b.innerHTML = j.problems.length ? `<p>Please fix these in Appwrite or Cloudflare, then reload:</p><ul>${j.problems.map(p => `<li>${esc(p)}</li>`).join("")}</ul>` : `<p>The database and key look correct. Send the red error message to your developer.</p>`;
+  } catch (e) { b.innerHTML = `<p>${esc(e.message)}</p>`; }
+}
+
 /* ---------- Side menu, chat options, profile menu ---------- */
 function drawer() {
   const d = document.createElement("div"); d.className = "sheet side";
-  d.innerHTML = `<aside class="sb"><button class="newc" id="n2">✎ New chat</button><div class="cl">${chats.length ? chats.map(c => `<div class="ci ${c.id === cur ? "on" : ""}" data-id="${c.id}"><span>${esc(c.title)}</span><button class="mo" data-m="${c.id}" aria-label="Chat options">⋯</button></div>`).join("") : `<p class="sub">No chats yet</p>`}</div><button class="usr" id="us"><span class="ua">${esc((U.name || "?")[0].toUpperCase())}</span><span>${esc(U.name)}</span></button></aside>`;
+  d.innerHTML = `<aside class="sb"><button class="newc" id="n2">${IC.edit}<span>New chat</span></button><div class="cl">${chats.length ? chats.map(c => `<div class="ci ${c.id === cur ? "on" : ""}" data-id="${c.id}"><span>${esc(c.title)}</span><button class="mo" data-m="${c.id}" aria-label="Chat options">${IC.more}</button></div>`).join("") : `<p class="sub">No chats yet</p>`}</div><button class="usr" id="us"><span class="ua">${esc((U.name || "?")[0].toUpperCase())}</span><span>${esc(U.name)}</span></button></aside>`;
   d.onclick = e => {
     if (e.target === d) return d.remove();
     const mo = e.target.closest("[data-m]"); if (mo) { d.remove(); return chatMenu(mo.dataset.m); }
@@ -352,7 +370,7 @@ function settings() {
 
 /* ---------- Help assistant ---------- */
 function help() {
-  const d = sheet("Help", `<div class="hl" id="hl"><div class="a"><div class="tx"><p>Hi! I’m the Nelly AI help assistant. Ask me anything about the app: limits, settings, your account or how things work.</p></div></div></div><div class="pill hp"><textarea id="hi" rows="1" maxlength="500" placeholder="Ask for help"></textarea><button class="send" id="hs" aria-label="Send">↑</button></div><p class="fine c">Still stuck? Email isenyealvin@gmail.com</p>`);
+  const d = sheet("Help", `<div class="hl" id="hl"><div class="a"><div class="tx"><p>Hi! I’m the Nelly AI help assistant. Ask me anything about the app: limits, settings, your account or how things work.</p></div></div></div><div class="pill hp"><textarea id="hi" rows="1" maxlength="500" placeholder="Ask for help"></textarea><button class="send" id="hs" aria-label="Send">${IC.send}</button></div><p class="fine c">Still stuck? Email isenyealvin@gmail.com</p>`);
   const hist = [], hl = d.querySelector("#hl"), hi = d.querySelector("#hi"); let bz = false;
   const add = (r, t) => {
     const x = document.createElement("div"); x.className = r;

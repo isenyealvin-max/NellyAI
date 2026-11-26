@@ -107,6 +107,24 @@ async function track(env, u, out) {
   else await aw(env, "POST", rp("stats"), { rowId: id, data: { day: id.slice(0, 8), provider: out.provider, count: 1 } }).catch(() => {});
 }
 
+// ---------- Setup check (shows what is missing in Appwrite) ----------
+const EXPECT = { profiles: [["name", "email", "lastSeen", "lastModel", "settings", "place", "lat", "lon"], ["bySeen"]], chats: [["userId", "title"], ["byUser"]], messages: [["chatId", "userId", "role", "content", "meta"], ["byChat"]], usage: [["userId", "kind", "windowStart", "count"], []], memories: [["userId", "fact"], ["byUser"]], stats: [["day", "provider", "count"], ["byDay"]] };
+async function health(env) {
+  const problems = [];
+  if (!env.APPWRITE_API_KEY) problems.push("The secret APPWRITE_API_KEY is missing in Cloudflare (Settings, Variables and secrets).");
+  for (const [t, [cols, idx]] of Object.entries(EXPECT)) {
+    try {
+      const c = await aw(env, "GET", `/tablesdb/${DB}/tables/${T[t]}/columns`), i = await aw(env, "GET", `/tablesdb/${DB}/tables/${T[t]}/indexes`);
+      if (!c) { problems.push(t + ": table not found. Check its ID."); continue; }
+      const arr = c.columns || c.attributes; if (!arr) { problems.push(t + ": unexpected answer from Appwrite."); continue; }
+      const have = arr.map(x => x.key), hi = ((i && (i.indexes || [])) || []).map(x => x.key);
+      cols.filter(k => !have.includes(k)).forEach(k => problems.push(t + ": missing column " + k));
+      idx.filter(k => !hi.includes(k)).forEach(k => problems.push(t + ": missing index " + k));
+    } catch (e) { problems.push(t + ": " + String(e.message).slice(0, 140)); }
+  }
+  return problems;
+}
+
 // ---------- Requests ----------
 async function handle(env, ctx, route, b) {
   const u = await who(b);
@@ -115,6 +133,7 @@ async function handle(env, ctx, route, b) {
   const uid = u.$id;
   const own = async id => { const c = id ? await aw(env, "GET", rp("chats", "/" + String(id).slice(0, 36))) : null; return c && c.userId === uid ? c : null; };
 
+  if (route === "health") return J({ problems: await health(env) });
   if (route === "me") {
     const r = await aw(env, "GET", rp("usage", "/" + (uid + "_message").slice(0, 36)));
     const start = r ? Date.parse(r.windowStart) : 0, live = r && Date.now() - start < HOUR;
