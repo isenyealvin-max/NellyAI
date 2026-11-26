@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Nelly AI</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+<script>
+addEventListener("error", function (e) {
+  var a = document.getElementById("app"); if (!a) return;
+  var net = e.target && e.target.src;
+  a.innerHTML = "<section style='text-align:center;padding:12vh 16px;font:18px system-ui,sans-serif'><img src='logo.svg' width='120' height='120' alt=''><h2>" + (net ? "No connection" : "Something went wrong") + "</h2><p style='color:#6b6b6b'>" + (net ? "Can not connect to Nelly AI. Please check your internet connection and try again." : "Please try again. If it keeps happening, email isenyealvin@gmail.com.") + "</p><button onclick='location.reload()' style='background:#0d0d0d;color:#fff;border:0;border-radius:999px;padding:14px 28px;font:600 17px system-ui,sans-serif'>Try again</button></section>";
+}, true);
+</script>
+</head>
+<body>
+<main id="app"><div class="splash"><img class="logo-anim" src="logo.svg" alt="Nelly AI"><p>Loading…</p></div></main>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@16.0.2"></script>
+<script src="config.js"></script>
+<script src="legal.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
